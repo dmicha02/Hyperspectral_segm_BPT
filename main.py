@@ -11,7 +11,7 @@ from binary_tree_factory import BinaryTreeFactory
 import logging
 import os
 from create_log_file import createLogFile
-
+# test modification pour git hub
 #create the log file
 if not os.path.isfile("binary_tree_factory.log"):
     createLogFile("binary_tree_factory.log")
