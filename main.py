@@ -1,23 +1,25 @@
 """
-Main programm
+Main programm to partition image using binary partition tree
 """
+import logging
+import os
+import time
 import sys
 sys.path.append('F:\M1\Projet_Images_Hyperspectral\code')
 from PIL import Image
 from binary_tree_factory import BinaryTreeFactory
-#import sphinx
-#import sphinx.quickstart
-#import sphinx.apidoc
-import logging
-import os
 from create_log_file import createLogFile
+from sphinx_doc import genere_doc
 
 #create the log file
-if not os.path.isfile("binary_tree_factory.log"):
-    createLogFile("binary_tree_factory.log")
+LOG_FILE = "binary_tree_factory.log"
+if not os.path.isfile(LOG_FILE):
+    createLogFile(LOG_FILE)
 
 #begin of program
 logging.info("-------------------started program--------------------")
+begin = time.clock()
+
 # load image
 logging.info("load image")
 img_file = "test_ndg.png"
@@ -28,16 +30,13 @@ logging.debug("image : " + img_file)
 T = BinaryTreeFactory.getFromImage(IMG, 80)
 
 # result of partition of simple grayscale image
-#BinaryTreeFactory().FinalGrayscaleImagePartition(T, IMG)
+BinaryTreeFactory().FinalGrayscaleImagePartition(T, IMG)
 BinaryTreeFactory().DisplayResultImage(T, IMG)
 
 # create auto-documentation using Sphinx
-#logging.info("create documentation Sphinx")
-#def configure_doc():
-#    sphinx.quickstart.main(['sphinx-quickstart'])
-#def genere_doc():
-#    sphinx.apidoc.main(['sphinx-apidoc','-f','--output-dir=doc/generated','./'])
-#    sphinx.main(['sphinx-build','-b','html','doc','doc/_build/html'])
-#genere_doc()
+logging.info("create documentation Sphinx")
+genere_doc()
 
-logging.info("end of program")
+end = time.clock()
+time = end - begin
+logging.info("end of program (execution time: " + str(time) + " s)")

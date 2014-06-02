@@ -2,8 +2,8 @@
 from region_graph import initRegionGraphe
 from PIL import Image, ImageDraw
 import numpy as np
-#from criterion import MeanCriterion
 import logging
+
 
 class BinaryTreeFactory(object):
     """Class to partition images with binary partition tree"""
