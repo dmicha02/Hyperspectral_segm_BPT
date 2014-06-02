@@ -37,6 +37,8 @@ BinaryTreeFactory().DisplayResultImage(T, IMG)
 logging.info("create documentation Sphinx")
 genere_doc()
 
+<<<<<<< HEAD
 end = time.clock()
 time = end - begin
 logging.info("end of program (execution time: " + str(time) + " s)")
+>>>>>>> c4292f3213f84baa5b009358e82143530d1a2e69
