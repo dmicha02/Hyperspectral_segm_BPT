@@ -1,49 +1,60 @@
 """
-File for type of merge strategy
+File contain the different strategies to merge nodes
 """
 from merge_strategy import MergeStrategy
+import logging
 
 
 class MeanMergeStrategy(MergeStrategy):
-    """Example of merging strategy  with average distance criterion"""
+    """Example of merging strategy : average distance between two nodes"""
 
     def __init__(self):
         pass
 
-    def merge(self, r1, r2, merge_order):
-        """Function to merge two nodes together
+    def score(self, r1, r2):
+        """Method to calcul the distance between two nodes
 
-        :param r1: the first node to merge
-        :type name: AbstractNode
-        :param r2: the second node to merge
-        :type name: AbstractNode
-        :param merge_order: the merge order of new node
-        :return: the new node
-        :rtype: Group"""
-        from region_graph import Group
+        :param r1: First node
+        :type r1: AbstractNode
+        :param r2: Second node
+        :type r2: AbstractNode
+        :return: Distance between r1 and r2
+        :rtype: int"""
+        try:
+            return abs(r1.val - r2.val)
+        except:
+            logging.error(" \t \tError in MeanMergeStrategy().score()")
+            print "Error in MeanMergeStrategy().score()"
 
-        if isinstance(r1.pixel_list[0].spectrum, int):
-            new_region = Group((r1.val + r2.val) / 2)
-            new_region.neighbours = (r1.neighbours).union(r2.neighbours)
-            new_region.neighbours.discard(r1)
-            new_region.neighbours.discard(r2)
-            ensemble_pixel = set(r1.pixel_list).union(set(r2.pixel_list))
-            new_region.pixel_list = list(ensemble_pixel)
-            new_region.childleft = r1
-            new_region.childright = r2
-            new_region.merge_order = merge_order
-            return new_region
+    def mini(self, edge):
+        """Method to return the two nodes which have the smallest distance
 
-        elif isinstance(r1.pixel_list[0].spectrum, list):
-            spectrum = []
-            for i in range(0, len(r1.val)):
-                spectrum = spectrum + ((r1.val[i] + r2.val[i]) / 2)
-            new_region = Group(spectrum)
-            new_region.neighbours = (r1.neighbours).union(r2.neighbours)
-            new_region.neighbours.remove(r1)
-            new_region.neighbours.remove(r2)
-            ensemble_pixel = set(r1.pixel_list).union(set(r2.pixel_list))
-            new_region.pixel_list = list(ensemble_pixel)
-            new_region.childleft = r1
-            new_region.childright = r2
-            return new_region
+        :param edge: Dictionnary which contains the couples node of the image
+        :type edge: dict
+        :return: the two nodes with minimal distance
+        :rtype: AbstractNodes"""
+        try:
+            dmin = float('inf')
+            for cle, valeur in edge.items():
+                if valeur < dmin:
+                    dmin = valeur
+                    (r1, r2) = cle
+            return r1, r2
+        except:
+            logging.error(" \t \tError in MeanMergeStrategy().mini()")
+            print "Error in MeanMergeStrategy().mini()"
+
+    def newValue(self, node1, node2):
+        """Method to calcul the new value of new node after merging
+
+        :param node1: The first node to merge
+        :type node1: AbstractNode
+        :param node2: The second node to merge
+        :type node2: AbstractNode
+        :return: New value for new node
+        :rtype: int"""
+        try:
+            return (node1.val + node2.val) / 2
+        except:
+            logging.error(" \t \tError in MeanMergeStrategy().newValue()")
+            print "Error in MeanMergeStrategy().newValue()"

@@ -1,42 +1,43 @@
 """
-Main programm to partition image using binary partition tree
+Main program : partition images using binary partition tree
 """
 import logging
-import os
 import time
-import sys
-sys.path.append('F:\M1\Projet_Images_Hyperspectral\code')
 from PIL import Image
 from binary_tree_factory import BinaryTreeFactory
+from plot_img import plotImage, showFinalsRegions
 from create_log_file import createLogFile
+from enable_debug import enableDebug
 from sphinx_doc import genere_doc
 
-#create the log file
+# Create the log file, if you don't want log file, comment the 2 lines under
 LOG_FILE = "binary_tree_factory.log"
-if not os.path.isfile(LOG_FILE):
-    createLogFile(LOG_FILE)
+enableDebug(0)
+createLogFile(LOG_FILE, logging.debug)
 
-#begin of program
-logging.info("-------------------started program--------------------")
+# Begin of program
 begin = time.clock()
+logging.info("--------Beginning of program--------")
 
-# load image
-logging.info("load image")
-img_file = "test_ndg.png"
-IMG = Image.open("data/" + img_file)
-logging.debug("image : " + img_file)
+# Load image
+FILE = "test128.png"
+IM = Image.open("data/" + FILE)
+logging.info("Load Image")
+TYPE_IM = 'L'   # type of image
+SIZE = IM.size   # image size
+CRITERION = 80   # stop criterion
+logging.info("Stop Criterion: " + str(CRITERION))
+# Partition image using binary partition tree
+TREE = BinaryTreeFactory.getFromGrayscaleImage(IM, CRITERION)
 
-# partition image with Binary Partition Tree
-T = BinaryTreeFactory.getFromImage(IMG, 80)
+# Results
+#plotImage(TREE, SIZE, TYPE_IM)
+#showFinalsRegions(TREE, SIZE, TYPE_IM, "red")
 
-# result of partition of simple grayscale image
-BinaryTreeFactory().FinalGrayscaleImagePartition(T, IMG)
-BinaryTreeFactory().DisplayResultImage(T, IMG)
+# Create auto-documentation using Sphinx
+#genere_doc()
 
-# create auto-documentation using Sphinx
-logging.info("create documentation Sphinx")
-genere_doc()
-
+# End of program
 end = time.clock()
 time = end - begin
-logging.info("end of program (execution time: " + str(time) + " s)")
+logging.info("End of program (execution time: " + str(time) + "s )")

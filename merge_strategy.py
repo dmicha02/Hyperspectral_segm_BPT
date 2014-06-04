@@ -1,9 +1,8 @@
 """
-File for merging strategy
+File for base class for merging strategy
 """
 
 
-class MergeStrategy(object):
+class MergeStrategy():
     """Base class for merging strategy"""
-    def __init__(self):
-        pass
+    pass

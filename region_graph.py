@@ -1,306 +1,235 @@
-"""File with class RegionGraph, Region, Group, Pixel, ... """
+"""
+File with class to represent pixels, nodes, graph and associated methods
+"""
 import numpy as np
-from mean_merge_strategy import MeanMergeStrategy
 import logging
+from mean_merge_strategy import MeanMergeStrategy
 
 
 class RegionGraph(object):
-    """Class that implements the neighbouring graph of regions
+    """Class that implements the graph of nodes
 
     :param merge_strategy: the merge strategy choose by user
     :type merge_strategy: MergeStrategy"""
-
     def __init__(self, merge_strategy):
         self.merge_strategy = merge_strategy
-        self.region_list = []
+        self.node_list = []
+        self.edge = dict()
 
-    def addRegion(self, r):
-        """Method for add a region in the list
+    def initDictRegions(self):
+        """Initialization of a dictionnary which contains the nodes couple
+        and the distance between the two nodes
 
-        :param r: region to add to region_list
-        :type r: Region"""
-        self.region_list.append(r)
+        :return: the two regions with minimal distance
+        :rtype: AbstractNodes"""
+        try:
+            for i in self.node_list:
+                for j in i.neighbours:
+                    if (j, i) not in self.edge:
+                        self.edge[i, j] = self.merge_strategy.score(i, j)
+            return self.regionToMerge()
+        except:
+            logging.error(" \t \tError in RegionGraph.initDictRegions()")
+            print "Error in RegionGraph.initDictRegions()"
 
-    def mergeRegions(self, r1, r2, temp):
-        """Method for merge two regions
+    def update(self, node1, node2, node3):
+        """Method to delete the edges between node1 and node2
+        and replace by the new edges with node3
 
-        :param r1: first node to merge
-        :type r1: AbstractNode
-        :param r2: second node to merge
-        :type r2: AbstractNode
-        :param temp: it serves to define the merge order of new node
-        :type temp: int
-        :return: the new node after merge
-        :rtype: Group"""
-        logging.info("merge two regions")
-        r3 = self.merge_strategy.merge(r1, r2, temp)
-        return r3
+        :param node1: First node to merge
+        :type node1: AbstractNode
+        :param node2: Second node to merge
+        :type node2: AbstractNode
+        :param node3: New node after merging
+        :type node3: AbstractNode
+        :return: dictionnary of nodes couple
+        :rtype: dict"""
+        try:
+            for i in node2.neighbours:
+                if (node2, i) in self.edge:
+                    del self.edge[node2, i]
+                elif(i, node2) in self.edge:
+                    del self.edge[i, node2]
+            for i in node1.neighbours:
+                if (node1, i) in self.edge:
+                    del self.edge[node1, i]
+                elif(i, node1) in self.edge:
+                    del self.edge[i, node1]
+            for i in node3.neighbours:
+                self.edge[node3, i] = self.merge_strategy.score(node3, i)
+            return self.edge
+        except:
+            logging.error(" \t \tError in RegionGraph.update()")
+            print "Error in RegionGraph.update()"
 
-    def initDistance(self):
-        """Method to initialize a list of distance between two pixels
-        in neighborhood and save result in tuple
+    def regionToMerge(self):
+        """Method to find the two nodes to merge
 
-        :return: list of tuple where the two first arguments are two AbstractNode and the third is distance
-        :rtype: list"""
-        logging.info("init / update distance list")
-        l = []
-        for region in self.region_list:
-            for neighbour in region.neighbours:
-                l.append(tuple([region, neighbour, abs(region.val - neighbour.val)]))
-        return l
+        :return: the two regions to merge
+        :rtype: AbstractNodes"""
+        try:
+            (r1, r2) = self.merge_strategy.mini(self.edge)
+            return r1, r2
+        except:
+            logging.error(" \t \tError in RegionGraph.regionToMerge()")
+            print "Error in RegionGraph.regionToMerge()"
 
-    def findDistanceMin(self, distance_list):
-        """Method to find the couple of pixels which have the minimal distance and this distance
+    def merge(self, node1, node2):
+        """This function merges two nodes together.
 
-        :param distance_list: list tuple provide by initDistance() method
-        :type distance_list: list
-        :return: the minimal tuple
-        :rtype: tuple"""
+        :param node1: The first node to merge
+        :type node1: AbstractNode
+        :param node2: The second node to merge
+        :type node2: AbstractNode"""
+        try:
+            node3 = Group()
+            node3.child1 = node1
+            node3.child2 = node2
+            node3.neighbours = node1.neighbours.union(node2.neighbours)
+            node3.neighbours.discard(node1)
+            node3.neighbours.discard(node2)
+            node3.pixel_list = node1.pixel_list.union(node2.pixel_list)
+            node3.val = self.merge_strategy.newValue(node1, node2)
+            node3.order = max(node2.order, node1.order) + 1
 
-        logging.info("find the minimal criterion")
-        dmin = float("inf")
-        for element in distance_list:
-            if element[2] < dmin:
-                dmin = element[2]
-                tuple_min = element
-            else:
-                dmin = dmin
-                tuple_min = tuple_min
-        return tuple_min
+            # Update neighbours in other groups
+            self.update(node1, node2, node3)
+            self.node_list.remove(node1)
+            self.node_list.remove(node2)
 
-#    def InitDistanceDict(self):
-#        """Method to initialize the list of dictionnary
-#        including the two neighbours with the minimal distance
-#
-#        :return: list of dict
-#        :rtype: list"""
-#        list_dict = []
-#        dico_2 = {"r1": None, "neighbours": []}
-#        dico = {"r2": None, "val": None}
-#        for node in self.region_list:
-#            dico_2 = {"r1": None, "neighbours": []}
-#
-#            dico_2["r1"] = node
-#            for neighbour in node.neighbours:
-#                dico = {"r2": None, "val": None}
-#                dico["r2"] = neighbour
-#                dico["val"] = abs(neighbour.val - node.val)
-#                dico_2["neighbours"].append(dico)
-#            list_dict.append(dico_2)
-#        return list_dict
+            for node in self.node_list:
+                if node1 in node.neighbours or node2 in node.neighbours:
+                    node.neighbours.discard(node1)
+                    node.neighbours.discard(node2)
+                    node.neighbours.add(node3)
 
-#    def FindDistanceMin(self, dict_list):
-#        """Method to find the two region with the smaller distance
-#
-#        :param dict_list: the list of dict
-#        :type dict_list: list
-#        :return: dict with the two regions and the distance
-#        :rtype: dict"""
-#        dmin = float("inf")
-#        dico_min = None
-#        for r1 in dict_list:
-#            for r2 in r1["neighbours"]:
-#                if abs(r1["r1"].val - r2["r2"].val) < dmin:
-#                    dmin = abs(r1["r1"].val - r2["r2"].val)
-#                    dico_min = {"r1": r1["r1"], "r2": r2["r2"], "val": dmin}
-#                else:
-#                    dmin = dmin
-#                    dico_min = dico_min
-#        return dico_min
+            # Add new node to list of nodes
+            self.node_list.append(node3)
+        except:
+            logging.error(" \t \tError in RegionGraph.merge()")
+            print "Error in RegionGraph.merge()"
 
-#    def UpdateDistanceDict(self, dico_list, dict_min, new_region):
-#        """Method to update the list of dictionnary
-#        including the two neighbours with the minimal distance
-#
-#        :return: list of dict
-#        :rtype: list"""
-#        for dico in dico_list:
-#            if dico["r1"] != dict_min["r1"] and dico["r1"] != dict_min["r2"]:
-#                for neighbour in dico["neighbours"]:
-#                    if neighbour["r2"] == dict_min["r1"] or neighbour["r2"] == dict_min["r2"]:
-#                        neighbour["r2"] = new_region
-#                        neighbour["val"] = abs(new_region.val - dico["r1"].val)
-#                    else:
-#                        neighbour = neighbour
-#        for dico in dico_list:
-#            if dico["r1"] == dict_min["r1"] or dico["r1"] == dict_min["r2"]:
-#                dico_list.remove(dico)
-#        temp = []
-#        for n in new_region.neighbours:
-#            temp.append({"val": abs(new_region.val - n.val), "r2": n})
-#        dico_list.append({"r1": new_region, "neighbours": temp})
+    def initRegionList(self, line, column, data):
+        """Method to initialize the graph
 
-    def initRegionList(self, pixel, line, column):
-        """Method to initialize the region list
-
-        :param pixel: list of pixels
-        :type pixel: Pixel
-        :param line: number of ligne on image
+        :param line: number of lines in image
         :type line: int
-        :param column: number of column on image
-        :type column: int"""
-        for i in range(0, line):
-            for j in range(0, column):
-                self.addRegion(Region([pixel[i][j]], pixel[i][j].spectrum))
+        :param column: number of columns in image
+        :type column: int
+        :param data: array represent pixels in image
+        :type data: array
+        :return: list of regions
+        :rtype: list"""
+        try:
+            reg = []
+            for i in range(0, line):
+                for j in range(0, column):
+                    reg.append(Region(Pixel(i, j, data[i][j])))
+            return reg
+        except:
+            logging.error(" \t \tError in RegionGraph.initRegionList()")
+            print "Error in RegionGraph.initRegionList()"
 
-    def initNeighboursRegionList(self, line, column):
+    def initNeighboursRegionList(self, reg, line, column):
         """Method to initialize the neighbours
 
+        :param reg: array of regions
+        :type reg: array
         :param line: number of ligne on image
         :type line: int
         :param column: number of column on image
         :type column: int"""
-        for i in range(0, line):
-            for j in range(0, column):
+        try:
+            for i in range(0, line):
+                for j in range(0, column):
 
-                if i == 0 and j == 0:
-                    self.region_list[i][j].addNeighbours(self.region_list[i][j+1])
-                    self.region_list[i][j].addNeighbours(self.region_list[i+1][j])
+                    if (i == 0 and j == 0):
+                        reg[i][j].addNeighbour(reg[i][j+1])
+                        reg[i][j].addNeighbour(reg[i+1][j])
 
-                elif i == 0 and j == column-1:
-                    self.region_list[i][j].addNeighbours(self.region_list[i][j-1])
-                    self.region_list[i][j].addNeighbours(self.region_list[i+1][j])
+                    elif (i == 0 and j == column - 1):
+                        reg[i][j].addNeighbour(reg[i][j-1])
+                        reg[i][j].addNeighbour(reg[i+1][j])
 
-                elif i == line-1 and j == 0:
-                    self.region_list[i][j].addNeighbours(self.region_list[i][j+1])
-                    self.region_list[i][j].addNeighbours(self.region_list[i-1][j])
+                    elif (i == line - 1 and j == 0):
+                        reg[i][j].addNeighbour(reg[i][j+1])
+                        reg[i][j].addNeighbour(reg[i-1][j])
 
-                elif i == line-1 and j == column-1:
-                    self.region_list[i][j].addNeighbours(self.region_list[i][j-1])
-                    self.region_list[i][j].addNeighbours(self.region_list[i-1][j])
+                    elif (i == line - 1 and j == column - 1):
+                        reg[i][j].addNeighbour(reg[i][j-1])
+                        reg[i][j].addNeighbour(reg[i-1][j])
 
-                elif i == 0 and (j != 0 and j != column-1):
-                    self.region_list[i][j].addNeighbours(self.region_list[i+1][j])
-                    self.region_list[i][j].addNeighbours(self.region_list[i][j-1])
-                    self.region_list[i][j].addNeighbours(self.region_list[i][j+1])
+                    elif (i == 0 and (j != 0 and j != column - 1)):
+                        reg[i][j].addNeighbour(reg[i+1][j])
+                        reg[i][j].addNeighbour(reg[i][j-1])
+                        reg[i][j].addNeighbour(reg[i][j+1])
 
-                elif i == line-1 and (j != 0 and j != column-1):
-                    self.region_list[i][j].addNeighbours(self.region_list[i-1][j])
-                    self.region_list[i][j].addNeighbours(self.region_list[i][j-1])
-                    self.region_list[i][j].addNeighbours(self.region_list[i][j+1])
+                    elif (i == line - 1 and (j != 0 and j != column - 1)):
+                        reg[i][j].addNeighbour(reg[i-1][j])
+                        reg[i][j].addNeighbour(reg[i][j-1])
+                        reg[i][j].addNeighbour(reg[i][j+1])
 
-                elif j == 0 and (i != 0 and i != line-1):
-                    self.region_list[i][j].addNeighbours(self.region_list[i-1][j])
-                    self.region_list[i][j].addNeighbours(self.region_list[i+1][j])
-                    self.region_list[i][j].addNeighbours(self.region_list[i][j+1])
+                    elif (j == 0 and (i != 0 and i != line - 1)):
+                        reg[i][j].addNeighbour(reg[i-1][j])
+                        reg[i][j].addNeighbour(reg[i+1][j])
+                        reg[i][j].addNeighbour(reg[i][j+1])
 
-                elif j == column-1 and (i != 0 and i != line-1):
-                    self.region_list[i][j].addNeighbours(self.region_list[i-1][j])
-                    self.region_list[i][j].addNeighbours(self.region_list[i+1][j])
-                    self.region_list[i][j].addNeighbours(self.region_list[i][j-1])
+                    elif (j == column - 1 and i != 0 and i != line - 1):
+                        reg[i][j].addNeighbour(reg[i-1][j])
+                        reg[i][j].addNeighbour(reg[i+1][j])
+                        reg[i][j].addNeighbour(reg[i][j-1])
 
-                else:
-                    self.region_list[i][j].addNeighbours(self.region_list[i-1][j])
-                    self.region_list[i][j].addNeighbours(self.region_list[i+1][j])
-                    self.region_list[i][j].addNeighbours(self.region_list[i][j+1])
-                    self.region_list[i][j].addNeighbours(self.region_list[i][j-1])
-
-    def updateGraph(self, region_to_del1, region_to_del2, region_to_add):
-        """method to update Graph after merging
-
-        :param region_to_del1: first region to del in list of regions
-        :type region_to_del1: AbstractNode
-        :param region_to_del2: second region to del in list of regions
-        :type region_to_del2: AbstractNode
-        :param region_to_add: region to add in list of regions
-        :type region_to_add: AbstractNode"""
-        logging.info("update Graph")
-        self.addRegion(region_to_add)
-        self.region_list.remove(region_to_del1)
-        self.region_list.remove(region_to_del2)
-
-    def updateNeighbours(self, region_to_del1, region_to_del2, region_to_add):
-        """method to update region's neighbours after merging
-
-        :param region_to_del1: first region to del in list of neighbours
-        :type region_to_del1: AbstractNode
-        :param region_to_del2: second region to del in list of neighbours
-        :type region_to_del2: AbstractNode
-        :param region_to_add: region to add in list of neighbours
-        :type region_to_add: AbstractNode"""
-        logging.info("update neighbours")
-        for node in self.region_list:
-            if region_to_del1 in node.neighbours or region_to_del2 in node.neighbours:
-                node.neighbours.discard(region_to_del1)
-                node.neighbours.discard(region_to_del2)
-                node.neighbours.add(region_to_add)
+                    else:
+                        reg[i][j].addNeighbour(reg[i-1][j])
+                        reg[i][j].addNeighbour(reg[i+1][j])
+                        reg[i][j].addNeighbour(reg[i][j+1])
+                        reg[i][j].addNeighbour(reg[i][j-1])
+        except:
+            logging.error(" \t \tError in RegionGraph.initNeighboursRegionList()")
+            print "Error in RegionGraph.initNeighboursRegionList()"
 
 
 class AbstractNode(object):
     """Parent class of Region and Group"""
-    def __init__(self):
-        pass
+    order = 0
 
 
 class Region(AbstractNode):
     """Class that represents a region of the image
 
-    :param pixel_list: list of pixel(s)
-    :type pixel_list: list
-    :param value: region value
-    :type value: int or tuple"""
-
-    def __init__(self, pixel_list, value):
-        self.pixel_list = pixel_list
+    :param pixel: a pixel
+    :type pixel: Pixel"""
+    def __init__(self, pixel):
+        self.pixel = pixel
         self.neighbours = set()
-        self.val = value
+        self.pixel_list = set()
+        self.pixel_list.add(pixel)
+        self.val = pixel.spectrum
 
-    def addNeighbours(self, r):
-        """Method to add a neighbour
-
-        :param r: neighbour to add
-        :type r: AbstractNode"""
-        self.neighbours.add(r)
+    def addNeighbour(self, r):
+            self.neighbours.add(r)
 
 
 class Group(AbstractNode):
-    """Class that implements the binary tree structure
-
-    :param value: node value
-    :type value: int or tuple"""
-
-    def __init__(self, value):
-        self.pixel_list = None
-        self.childright = None
-        self.childleft = None
-        self.merge_order = None
-        self.val = value
-        self.neighbours = set()
-
-
-class PixelList(list):
-    """Represents a pixel list """
-
+    """Class that implements the binary tree structure"""
     def __init__(self):
-        pass
-
-    def initList(self, data, line, column):
-        """Method to initialize the pixel list
-
-        :return: pixel array of image for initialization
-        :rtype: array"""
-        px = []
-        if isinstance(data[0][0], int):
-            for i in range(0, line):
-                for j in range(0, column):
-                    px.append(Pixel(i, j, data[i][j]))
-        else:
-            for i in range(0, line):
-                for j in range(0, column):
-                    px.append(Pixel(i, j, tuple(data[i][j])))
-        return np.reshape(px, (line, column))
+        self.pixel_list = set()
+        self.child1 = None
+        self.child2 = None
+        self.merge_order = None
+        self.neighbours = set()
+        self.val = None
 
 
-class Pixel(object):
+class Pixel:
     """Represents a pixel with 2 space coordinates and the spectrum
 
-    :param x: line coordinate
+    :param x: x coordinate of pixel
     :type x: int
-    :param y: column coordinate
+    :param y: y coordinate of pixel
     :type y: int
-    :param spectrum: pixel spectrum
+    :param spectrum: spectrum of pixel
     :type spectrum: int or tuple"""
-
     def __init__(self, x, y, spectrum):
         self.x = x
         self.y = y
@@ -308,33 +237,22 @@ class Pixel(object):
 
 
 def initRegionGraphe(img):
-    """ Function to assign each pixel to a region
-    it returns a list of all regions (pixels)
+    """ Function to initialize a list of regions and all arguments of Regions
 
-    :param img: image to merge
+    :param img: image to partition
     :type img: image
-    :return: the initialization graphe
-    :rtype: RegionGraph"""
-    logging.info("initialization")
-    lig, col = img.size   # lig: number of lines col: number of columns
-    data = list(img.getdata())
-    if isinstance(data[0], int) == 1:
-        data = np.reshape(data, (lig, col))
-    elif isinstance(data[0], tuple) == 1:
-        data = np.reshape(data, (lig, col, len(data[0])))
-
-    graphe = RegionGraph(MeanMergeStrategy())
-
-    px = PixelList().initList(data, lig, col)   # pixels of image
-
-    graphe.initRegionList(px, lig, col)
-    graphe.region_list = np.reshape(graphe.region_list, (lig, col))   # regions list
-
-    #neighbours assignement
-    graphe.initNeighboursRegionList(lig, col)
-
-    #reshaping
-    graphe.region_list = np.reshape(graphe.region_list, (1, lig * col))
-    graphe.region_list = list(graphe.region_list[0])
-
-    return graphe
+    :return: list of all regions in image
+    :rtype: list"""
+    try:
+        line, column = img.size
+        data = list(img.getdata())
+        data = np.reshape(data, (line, column))
+        Graphe = RegionGraph(MeanMergeStrategy())
+        region_list = Graphe.initRegionList(line, column, data)
+        Graphe.node_list = region_list
+        region_list = np.reshape(region_list, (line, column))
+        Graphe.initNeighboursRegionList(region_list, line, column)
+        return Graphe
+    except:
+            logging.error(" \t \tError in initRegionGraphe()")
+            print "Error in initRegionGraphe()"
