@@ -8,11 +8,11 @@ import logging
 class MeanMergeStrategy(MergeStrategy):
     """Example of merging strategy : average distance between two nodes"""
 
-    def __init__(self):
-        pass
+    def __init__(self, type_img):
+        self.type_img = type_img
 
     def score(self, r1, r2):
-        """Method to calcul the distance between two nodes
+        """Method to calculate the distance between two nodes
 
         :param r1: First node
         :type r1: AbstractNode
@@ -21,7 +21,15 @@ class MeanMergeStrategy(MergeStrategy):
         :return: Distance between r1 and r2
         :rtype: int"""
         try:
-            return abs(r1.val - r2.val)
+            v1 = r1.mean_reg(self.type_img)
+            v2 = r2.mean_reg(self.type_img)
+            if self.type_img == 'L':
+                val = abs(v1-v2)
+            else:
+                val=[]
+                for i in range(len(v1)):
+                    val.append(v1[i]-v2[i])
+            return val
         except:
             logging.error(" \t \tError in MeanMergeStrategy().score()")
             print "Error in MeanMergeStrategy().score()"
@@ -34,27 +42,19 @@ class MeanMergeStrategy(MergeStrategy):
         :return: the two nodes with minimal distance
         :rtype: AbstractNodes"""
         try:
-            dmin = float('inf')
-            for cle, valeur in edge.items():
-                if valeur < dmin:
-                    dmin = valeur
-                    (r1, r2) = cle
+            if self.type_img == 'L':
+                dmin = float("inf")
+                for cle, valeur in edge.items():
+                    if (valeur < dmin):
+                        dmin = valeur
+                        (r1, r2) = cle
+            else:
+                dmin = float("inf")
+                for cle, valeur in edge.items():
+                    if sum(valeur) < dmin:
+                        dmin = sum(valeur)
+                        (r1, r2) = cle
             return r1, r2
         except:
             logging.error(" \t \tError in MeanMergeStrategy().mini()")
             print "Error in MeanMergeStrategy().mini()"
-
-    def newValue(self, node1, node2):
-        """Method to calcul the new value of new node after merging
-
-        :param node1: The first node to merge
-        :type node1: AbstractNode
-        :param node2: The second node to merge
-        :type node2: AbstractNode
-        :return: New value for new node
-        :rtype: int"""
-        try:
-            return (node1.val + node2.val) / 2
-        except:
-            logging.error(" \t \tError in MeanMergeStrategy().newValue()")
-            print "Error in MeanMergeStrategy().newValue()"

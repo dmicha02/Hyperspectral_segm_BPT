@@ -13,14 +13,19 @@ def plotImage(tree, size, type_img):
     :type tree: list
     :param size: size of the base image
     :type size: tuple
-    :param type_img: type of the base image
+    :param type_img: type of image 'L' for Grayscale 'RGB' for color
     :type type_img: str"""
     logging.info("** in plotImage():")
     try:
-        res = np.zeros(size, dtype=np.uint8)
+        if type_img == 'L':
+            res = np.zeros(size, dtype=np.uint8)
+        else:
+            res = np.zeros((size[0], size[1], len(tree[0].mean_reg(type_img))), dtype=np.uint8)
+
         for t in tree:
             for p in t.pixel_list:
-                res[p.x][p.y] = t.val
+                res[p.x][p.y] = t.mean_reg(type_img)
+
         img = Image.fromarray(res, type_img)
         img.show()
         logging.info("\t \t Success")
@@ -35,24 +40,30 @@ def showFinalsRegions(tree, size, type_img, mode="standard"):
     :type tree: list
     :param size: size of the base image
     :type size: tuple
-    :param type_img: type of the base image
+    :param type_img: type of image 'L' for Grayscale 'RGB' for color
     :type type_img: str
     :param mode: coloring regions (it can be "blue", "red", "yellow", ...)
     :type mode: str"""
     logging.info("** in showFinalsRegions():")
     if mode == "standard":
         for t in tree:
-            res = np.zeros(size, dtype=np.uint8)
+            if type_img == 'L':
+                res = np.zeros(size, dtype=np.uint8)
+            else:
+                res = np.zeros((size[0], size[1], len(tree[0].mean_reg(type_img))), dtype=np.uint8)
             for p in t.pixel_list:
-                res[p.x][p.y] = t.val
+                res[p.x][p.y] = t.mean_reg(type_img)
             img = Image.fromarray(res, type_img)
             img.show()
     else:
         for t in tree:
             zone = []
-            res = np.zeros(size, dtype=np.uint8)
+            if type_img == 'L':
+                res = np.zeros(size, dtype=np.uint8)
+            else:
+                res = np.zeros((size[0], size[1], len(tree[0].mean_reg(type_img))), dtype=np.uint8)
             for p in t.pixel_list:
-                res[p.x][p.y] = t.val
+                res[p.x][p.y] = t.mean_reg(type_img)
                 zone = zone + [(p.y, p.x)]
             img = Image.fromarray(res, type_img)
             img_demo = img.convert('RGB')

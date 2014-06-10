@@ -89,8 +89,7 @@ class RegionGraph(object):
             node3.neighbours.discard(node1)
             node3.neighbours.discard(node2)
             node3.pixel_list = node1.pixel_list.union(node2.pixel_list)
-            node3.val = self.merge_strategy.newValue(node1, node2)
-            node3.order = max(node2.order, node1.order) + 1
+            node3.order = max(node2.order, node1.order)+1
 
             # Update neighbours in other groups
             self.update(node1, node2, node3)
@@ -189,9 +188,39 @@ class RegionGraph(object):
             print "Error in RegionGraph.initNeighboursRegionList()"
 
 
+class PixelList(list):
+
+    def mean(self, type_img):
+        """Method to calculate the mean spectrum of a pixel list
+
+        :param type_img: type of image 'L' for Grayscale 'RGB' for color
+        :type type_img: str
+        :return: the mean spectrum of a pixel list
+        :rtype: list"""
+        if type_img != 'L':
+            spectra = [s.spectrum for s in self]
+            temp = []
+            for i in zip(*spectra):
+                temp.append(sum(i)/len(self))
+            return temp
+        else:
+            spectra = [s.spectrum for s in self]
+            return (sum(spectra)/len(self))
+
+
 class AbstractNode(object):
     """Parent class of Region and Group"""
     order = 0
+
+    def mean_reg(self, type_img):
+        """Method to return the mean pixel of pixel list
+
+        :param type_img: type of image 'L' for Grayscale 'RGB' for color
+        :type type_img: str
+        :return: the mean pixel of pixel list
+        :rtype: list"""
+        pixel_mean = PixelList(self.pixel_list)
+        return pixel_mean.mean(type_img)
 
 
 class Region(AbstractNode):
@@ -200,11 +229,9 @@ class Region(AbstractNode):
     :param pixel: a pixel
     :type pixel: Pixel"""
     def __init__(self, pixel):
-        self.pixel = pixel
         self.neighbours = set()
         self.pixel_list = set()
         self.pixel_list.add(pixel)
-        self.val = pixel.spectrum
 
     def addNeighbour(self, r):
             self.neighbours.add(r)
@@ -218,7 +245,6 @@ class Group(AbstractNode):
         self.child2 = None
         self.merge_order = None
         self.neighbours = set()
-        self.val = None
 
 
 class Pixel:
@@ -236,23 +262,28 @@ class Pixel:
         self.spectrum = spectrum
 
 
-def initRegionGraphe(img):
+def initRegionGraphe(img, type_img):
     """ Function to initialize a list of regions and all arguments of Regions
 
     :param img: image to partition
     :type img: image
+    :param type_img: type of image 'L' for Grayscale 'RGB' for color
+    :type type_img: str
     :return: list of all regions in image
     :rtype: list"""
     try:
-        line, column = img.size
-        data = list(img.getdata())
-        data = np.reshape(data, (line, column))
-        Graphe = RegionGraph(MeanMergeStrategy())
-        region_list = Graphe.initRegionList(line, column, data)
-        Graphe.node_list = region_list
-        region_list = np.reshape(region_list, (line, column))
-        Graphe.initNeighboursRegionList(region_list, line, column)
-        return Graphe
+		line, column = img.size
+		data = list(img.getdata())
+		if type_img == 'L':
+			data = np.reshape(data, (line, column))
+		else:
+			data = np.reshape(data, (line, column, len(data[0])))
+		Graphe = RegionGraph(MeanMergeStrategy(type_img))
+		region_list = Graphe.initRegionList(line, column, data)
+		Graphe.node_list = region_list
+		region_list = np.reshape(region_list, (line, column))
+		Graphe.initNeighboursRegionList(region_list, line, column)
+		return Graphe
     except:
-            logging.error(" \t \tError in initRegionGraphe()")
-            print "Error in initRegionGraphe()"
+        logging.error(" \t \tError in initRegionGraphe()")
+        print "Error in initRegionGraphe()"

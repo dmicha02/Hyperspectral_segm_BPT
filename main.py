@@ -20,19 +20,19 @@ begin = time.clock()
 logging.info("--------Beginning of program--------")
 
 # Load image
-FILE = "test128.png"
+FILE = "lena64.png"
 IM = Image.open("data/" + FILE)
 logging.info("Load Image")
 TYPE_IM = 'L'   # type of image
 SIZE = IM.size   # image size
-CRITERION = 80   # stop criterion
+CRITERION = 50   # stop criterion
 logging.info("Stop Criterion: " + str(CRITERION))
 # Partition image using binary partition tree
-TREE = BinaryTreeFactory.getFromGrayscaleImage(IM, CRITERION)
+TREE = BinaryTreeFactory.getFromImage(IM, CRITERION, TYPE_IM)
 
 # Results
-#plotImage(TREE, SIZE, TYPE_IM)
-#showFinalsRegions(TREE, SIZE, TYPE_IM, "red")
+plotImage(TREE, SIZE, TYPE_IM)
+#showFinalsRegions(TREE, SIZE, TYPE_IM, "standard")
 
 # Create auto-documentation using Sphinx
 #genere_doc()
